@@ -1,23 +1,17 @@
-FROM golang:alpine
+FROM golang:alpine as builder
 
-WORKDIR /build
+RUN mkdir /build 
 
-# Copy and install dependencies 
-COPY go.mod .
-COPY go.sum .
-RUN go mod download
+ADD . /build/
 
-# Copy the app into the container
-COPY . .
+WORKDIR /build 
 
-# Build
-RUN go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o main .
 
-# Navigate where the binary is built
-WORKDIR /dist
+FROM scratch
 
-RUN cp /build/main .
+COPY --from=builder /build/main /app/
 
-EXPOSE 8080
+WORKDIR /app
 
-CMD ["dist/main"]
+CMD ["./main"]
